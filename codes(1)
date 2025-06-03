@@ -1,0 +1,173 @@
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.util.Arrays;
+
+import static jdk.internal.org.jline.utils.AttributedStyle.BLACK;
+
+
+public class fast {
+    public static void setPixel(BufferedImage image, int x, int y, Color color, float opacity) {
+        Graphics2D g2d = image.createGraphics();
+        Color transparentColor = new Color(color.getRed(), color.getGreen(), color.getBlue(), (int)(opacity* 255));
+        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opacity));
+        g2d.setColor(transparentColor);
+        g2d.fillRect(x, y, 1, 1);
+        g2d.dispose();
+    }
+
+    public static double[] getPixelRotatedCoords(double x0, double y0, double degrees){
+        double[] rotatedCoords = {0,0};
+        double radian = Math.toRadians(degrees);
+        rotatedCoords[0] = (Math.cos(radian)*x0+Math.sin(radian)*y0);
+        rotatedCoords[1] = ((degrees<90?-1:1) * Math.sin(radian)*x0+Math.cos(radian)*y0);
+        return rotatedCoords;
+    }
+
+    public static String[] getAproximatedNeighborPixelColors(BufferedImage image, double x, double y){
+        //{rgbX, rgbY, tX, tY}
+        String[] colorsXY = new String[4];
+        int x0 = (int)x;
+        int y0 = (int)y;
+        if (x0>=0 && x0<image.getWidth() && y0>=0 && y0<image.getHeight()){
+            double difX = x-x0;
+            double difY = y-y0;
+
+            int mainPixel = image.getRGB(Math.min(x0, image.getWidth()-1), Math.min(y0, image.getHeight()-1));
+
+            int alpha = (mainPixel >> 24) & 0xFF;
+            float t = (float) alpha /255;
+
+            int red = (mainPixel >> 16) & 0xFF;
+            int green = (mainPixel >> 8) & 0xFF;
+            int blue = mainPixel & 0xFF;
+
+            if (difX>0.2){
+                int pixelX = image.getRGB(Math.min(x0+1, image.getWidth()-1), y0);
+                int redX = (pixelX >> 16) & 0xFF;
+                int greenX = (pixelX >> 8) & 0xFF;
+                int blueX = pixelX & 0xFF;
+                int alphaX = (pixelX >> 24) & 0xFF;
+                float tX = (float) alphaX /255;
+                int nRed = (int) ((difX*redX)+((1-difX)*red));
+                int nGreen = (int) ((difX*greenX)+((1-difX)*green));
+                int nBlue = (int) ((difX*blueX)+((1-difX)*blue));
+                colorsXY[0] = colorToString(new Color(nRed, nGreen, nBlue));
+                colorsXY[2] = tX + "";
+            }
+            if (difY>0.2){
+                int pixelY = image.getRGB(x0, Math.max(y0-1, 0));
+                int redY = (pixelY >> 16) & 0xFF;
+                int greenY = (pixelY >> 8) & 0xFF;
+                int blueY = pixelY & 0xFF;
+                int alphaY = (pixelY >> 24) & 0xFF;
+                float tY = (float) alphaY /255;
+                int nRed = (int) ((difY*redY)+((1-difY)*red));
+                int nGreen = (int) ((difY*greenY)+((1-difY)*green));
+                int nBlue = (int) ((difY*blueY)+((1-difY)*blue));
+                colorsXY[1] = colorToString(new Color(nRed, nGreen, nBlue));
+                colorsXY[3] = tY+"";
+            }
+        }
+        return colorsXY;
+    }
+
+    public static BufferedImage image(String path){
+        BufferedImage result = null;
+        path = path.replaceAll("\"", "");
+        File file = new File(path);
+        try {
+            result = ImageIO.read(file);
+        } catch (IOException e) {
+            System.out.println("(Main) Erro ao abrir imagem do caminho '" +path+ "'");
+        }
+        return result;
+    }
+    static int func(int x, int size){
+        int y = (x*x*x);
+        y = Math.min(size, y);
+        return y;
+    }
+    /*  int newWidth = 1000;
+        int newHeight = 1000;
+        System.out.println(Arrays.toString(getPixelRotatedCoords(2,1, 90)));
+
+        BufferedImage colorTest = image("colorTest.png");
+        int pixel1 = colorTest.getRGB(0, 0);
+        int pixel2 = colorTest.getRGB(2, 0);
+        System.out.println(pixel1 + "< pixelRGB");
+        // Extrair os componentes RGB do pixel
+        int red = (pixel1 >> 16) & 0xFF;
+        int green = (pixel1 >> 8) & 0xFF;
+        int blue = pixel1 & 0xFF;
+
+        int red2 = (pixel2 >> 16) & 0xFF;
+        int green2 = (pixel2 >> 8) & 0xFF;
+        int blue2 = pixel2 & 0xFF;
+
+        float dif = 0.25f;
+        int nRed = (int) ((dif*red)+((1-dif)*red2));
+        int nGreen = (int) ((dif*green)+((1-dif)*green2));
+        int nBlue = (int) ((dif*blue)+((1-dif)*blue2));
+
+        System.out.println(red + "< red");
+        System.out.println(green + "< green");
+        System.out.println(blue + "< blue");
+
+        setPixel(colorTest, 1, 0, new Color(nRed, nGreen, nBlue), 1);
+        BufferedImage image = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_ARGB);
+        for (int y = 0; y < newHeight; y++) {
+            for (int x = 0; x < newWidth; x++) {
+                ImageDecode.setPixel(image, x, y, Color.WHITE, 1);
+            }
+        }
+        for (int x = 0; x < newWidth; x++) {
+            ImageDecode.setPixel(image, x, func(x, newWidth), Color.BLACK, 1);
+        }
+
+        image = new ImageUpscaler(image, 2).getImage();
+
+        Main.saveImage(colorTest, "test");*/
+    public static String colorToString(Color color) {
+        return String.format("%d,%d,%d,%d", color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());
+    }
+    public static Color stringToColor(String colorString) {
+        String[] components = colorString.split(",");
+        int red = Integer.parseInt(components[0]);
+        int green = Integer.parseInt(components[1]);
+        int blue = Integer.parseInt(components[2]);
+        int alpha = Integer.parseInt(components[3]);
+        return new Color(red, green, blue, alpha);
+    }
+    public static void main(String[] args) {
+        BufferedImage arcade = image("arcade.png");
+        int newWidth = arcade.getWidth();
+        int newHeight = arcade.getHeight();
+        BufferedImage image = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_ARGB);
+
+        for (int y = 0; y < newHeight; y++) {
+            for (int x = 0; x < newWidth; x++) {
+                double[] coords = getPixelRotatedCoords(x, y, 0.4);
+                String[] colorsXY = getAproximatedNeighborPixelColors(image, coords[0], coords[1]);
+                int rgba;
+                if (x< arcade.getWidth() && y< arcade.getHeight()){
+                    rgba = arcade.getRGB(x,y);
+                    Color color = new Color(rgba);
+                    int alpha = (rgba >> 24) & 0xFF;
+                    float t = (float) alpha /255;
+                    if (colorsXY[0]!=null){
+                        setPixel(arcade, Math.min(x+1, image.getWidth()-1), y, stringToColor(colorsXY[0]), Float.parseFloat(colorsXY[2]));
+                    }
+                    if (colorsXY[1]!=null){
+                        setPixel(arcade,x, Math.max(y-1, 0), stringToColor(colorsXY[1]), Float.parseFloat(colorsXY[3]));
+                    }
+                    setPixel(image, (int)coords[0], (int)coords[1], color, t);
+                }
+
+            }
+        }
+        Main.saveImage(image, "test");
+    }
+}
